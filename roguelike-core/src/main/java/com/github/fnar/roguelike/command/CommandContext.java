@@ -8,6 +8,7 @@ import com.github.fnar.roguelike.command.message.Message;
 import com.github.fnar.roguelike.command.message.SpecialMessage;
 import com.github.fnar.roguelike.command.message.SuccessMessage;
 import com.github.fnar.roguelike.command.message.WarningMessage;
+import com.github.fnar.util.Exceptions;
 
 import java.util.Optional;
 
@@ -28,7 +29,7 @@ public class CommandContext {
   }
 
   public void sendFailure(Exception e) {
-    sendFailure("", e.getLocalizedMessage() != null ? e.getLocalizedMessage() : e.getMessage());
+    sendFailure("", Exceptions.asString(e));
   }
 
   public void sendFailure(String message) {
@@ -109,5 +110,30 @@ public class CommandContext {
 
   public Optional<Coord> getArgumentAsCoord(String position) {
     return this.contextHolder.getArgumentAsCoord(position);
+  }
+
+  public Coord parseNearbyOrXZCoord(int argumentIndex) {
+    if (isNearby(argumentIndex)) {
+      return getSenderXZ();
+    }
+    return parseXZCoordMaybe(argumentIndex).orElse(getSenderXZ());
+  }
+
+  private Coord getSenderXZ() {
+    return getSenderCoord().setY(0);
+  }
+
+  private Optional<Coord> parseXZCoordMaybe(int argumentIndex) {
+    try {
+      return this.contextHolder.getArgumentAsXZCoord(argumentIndex);
+    } catch (IllegalArgumentException ignored) {
+    }
+    return Optional.empty();
+  }
+
+  public boolean isNearby(int argumentIndex) {
+    return getArgument(argumentIndex)
+        .filter(string -> string.equals("here") || string.equals("nearby"))
+        .isPresent();
   }
 }

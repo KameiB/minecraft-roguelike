@@ -9,6 +9,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public abstract class BaseCommandRoute implements CommandRoute {
 
@@ -23,13 +24,17 @@ public abstract class BaseCommandRoute implements CommandRoute {
   }
 
   @Override
-  public void execute(CommandContext context, List<String> args) {
+  public void execute(CommandContext commandContext, List<String> args) {
     if (args.isEmpty() || !this.routes.containsKey(args.get(0))) {
       return;
     }
     List<String> tail = new ArrayList<>(args);
     String head = tail.remove(0);
-    this.routes.get(head).execute(context, tail);
+    try {
+      this.routes.get(head).execute(commandContext, tail);
+    } catch (Exception e) {
+      commandContext.sendFailure(e);
+    }
   }
 
   @Override
@@ -60,6 +65,10 @@ public abstract class BaseCommandRoute implements CommandRoute {
     }
 
     return options;
+  }
+
+  protected Set<String> getRoutes() {
+    return routes.keySet();
   }
 
 }

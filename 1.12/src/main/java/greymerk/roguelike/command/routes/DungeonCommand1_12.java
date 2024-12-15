@@ -6,48 +6,39 @@ import com.github.fnar.roguelike.command.commands.DungeonCommand;
 import java.util.List;
 
 import greymerk.roguelike.command.BaseCommandRoute;
-import greymerk.roguelike.util.ArgumentParser;
 import greymerk.roguelike.worldgen.Coord;
 
 public class DungeonCommand1_12 extends BaseCommandRoute {
 
+  private static final int coordArgumentIndex = 1;
+
   @Override
   public void execute(CommandContext commandContext, List<String> args) {
-    try {
-      ArgumentParser argumentParser = new ArgumentParser(args);
-      if (!argumentParser.hasEntry(0)) {
-        commandContext.sendInfo("notif.roguelike.usage_", "/roguelike dungeon {X Z | here} [setting]");
-        return;
-      }
-      String settingName = parseSettingName(argumentParser);
-      Coord coord = parseCoord(commandContext, args);
-      new DungeonCommand(commandContext, coord, settingName).run();
-    } catch (Exception e) {
-      commandContext.sendFailure(e);
+    if (commandContext.getArgument(coordArgumentIndex).isPresent()) {
+      generateDungeon(commandContext);
+    } else {
+      sendUsage(commandContext);
     }
   }
 
-  private String parseSettingName(ArgumentParser argumentParser) {
-    boolean isNearby = isNearby(argumentParser);
-    return argumentParser.get(isNearby ? 1 : 2);
+  private static void generateDungeon(CommandContext commandContext) {
+    Coord coord = commandContext.parseNearbyOrXZCoord(coordArgumentIndex);
+    String settingName = getSettingName(commandContext);
+    new DungeonCommand(commandContext, coord, settingName).run();
   }
 
-  private static boolean isNearby(ArgumentParser argumentParser) {
-    return argumentParser.match(0, "here")
-        || argumentParser.match(0, "nearby");
+  private static void sendUsage(CommandContext commandContext) {
+    commandContext.sendInfo("notif.roguelike.usage_", "/roguelike dungeon {X Z | here | nearby} [setting]");
   }
 
-  protected Coord parseCoord(CommandContext context, List<String> args) {
-    ArgumentParser argumentParser = new ArgumentParser(args);
-    if (isNearby(argumentParser)) {
-      return context.getSenderCoord().setY(0);
-    }
-    try {
-      return argumentParser.getXZCoord(0);
-    } catch (IllegalArgumentException e) {
-      context.sendFailure("invalidcoords", "X Z");
-      throw (e);
-    }
+  private static String getSettingName(CommandContext commandContext) {
+    return commandContext
+        .getArgument(getSettingNameArgumentIndex(commandContext))
+        .orElse(null);
+  }
+
+  private static int getSettingNameArgumentIndex(CommandContext commandContext) {
+    return commandContext.isNearby(coordArgumentIndex) ? 2 : 3;
   }
 
 }
